@@ -14,8 +14,6 @@
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX2YYngskgPB
-
 #### Run Locally
 
 **Prerequisites:**  Node.js
@@ -104,8 +102,6 @@ This setup will:
 ### 运行和部署您的AI Studio应用
 
 这包含了在本地运行您的应用所需的一切。
-
-在AI Studio中查看您的应用: https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX2YYngskgPB
 
 #### 本地运行
 
