@@ -1,0 +1,5 @@
+{
+  "name": "墨香听书 - AI 小说阅读器",
+  "description": "一个具有纸质书质感的 AI 小说听书应用，支持通过本地部署的 OpenAI 兼容接口进行文字转语音。",
+  "requestFramePermissions": []
+}
