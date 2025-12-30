@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PlaybackSettings, Book, Chapter } from './types';
 import { DEFAULT_SETTINGS, Icons, TRANSLATIONS } from './constants';
@@ -73,21 +74,23 @@ const App: React.FC = () => {
     };
   }, [settings.uiLanguage]);
 
+  // 处理一段播放结束，进入下一段
+  const handleNext = useCallback(() => {
+    setCurrentChunkIndex(prev => {
+      const next = prev + 1;
+      if (next < chunks.length) {
+        playChunk(next);
+        return next;
+      }
+      setIsReading(false);
+      return prev;
+    });
+  }, [chunks]);
+
   useEffect(() => {
     if (!audioRef.current) return;
-    const handleEnded = () => {
-      setCurrentChunkIndex(prev => {
-        const next = prev + 1;
-        if (next < chunks.length) {
-          playChunk(next);
-          return next;
-        }
-        setIsReading(false);
-        return prev;
-      });
-    };
-    audioRef.current.onended = handleEnded;
-  }, [chunks, settings]);
+    audioRef.current.onended = handleNext;
+  }, [handleNext]);
 
   useEffect(() => {
     localStorage.setItem(LIBRARY_STORAGE_KEY, JSON.stringify(library));
@@ -138,10 +141,27 @@ const App: React.FC = () => {
       updateProgress(selectedBookId, currentChapter.id, index, index === chunks.length - 1);
     }
 
+    const textToSpeak = chunks[index];
+
+    // --- 核心修复：纯符号片段拦截 ---
+    // 正则解释：不包含任何字母、数字或中文字符
+    const isUnspeakable = !/[\p{L}\p{N}\u4e00-\u9fa5]/u.test(textToSpeak || '');
+    if (isUnspeakable) {
+      setIsLoading(false);
+      setIsReading(true); // 视觉上维持播放状态
+      // 模拟 800ms 的停顿（留白感），然后自动进入下一段
+      setTimeout(() => {
+        if (currentPlaybackId === playbackIdRef.current) {
+          handleNext();
+        }
+      }, 800);
+      return;
+    }
+    // ----------------------------
+
     try {
       let audioUrl = preloadedAudio.current.get(index);
       if (!audioUrl) {
-        const textToSpeak = chunks[index];
         if (!textToSpeak?.trim()) {
           if (currentPlaybackId === playbackIdRef.current) setIsLoading(false);
           return;
@@ -166,11 +186,16 @@ const App: React.FC = () => {
         }
       }
 
+      // 预加载逻辑也需要避开纯符号片段
       [index + 1, index + 2].forEach(nextIdx => {
         if (nextIdx < chunks.length && !preloadedAudio.current.has(nextIdx)) {
-          generateAudioBlob(chunks[nextIdx], settings)
-            .then(blob => preloadedAudio.current.set(nextIdx, URL.createObjectURL(blob)))
-            .catch(() => {});
+          const nextText = chunks[nextIdx];
+          const nextIsUnspeakable = !/[\p{L}\p{N}\u4e00-\u9fa5]/u.test(nextText || '');
+          if (!nextIsUnspeakable) {
+            generateAudioBlob(nextText, settings)
+              .then(blob => preloadedAudio.current.set(nextIdx, URL.createObjectURL(blob)))
+              .catch(() => {});
+          }
         }
       });
     } catch (err: any) {
@@ -180,7 +205,7 @@ const App: React.FC = () => {
         setIsLoading(false);
       }
     }
-  }, [chunks, settings, stopReading, selectedBookId, updateProgress]);
+  }, [chunks, settings, stopReading, selectedBookId, updateProgress, handleNext]);
 
   useEffect(() => {
     if (shouldAutoPlayRef.current && chunks.length > 0) {
