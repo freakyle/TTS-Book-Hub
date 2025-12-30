@@ -1,379 +1,188 @@
-![GHBanner](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
+# AI Studio Application Documentation
+# AI Studio应用程序文档
 
+---
 
-***
+## English Version
+## 英文版本
 
-## Language / 语言选择
-
-
-
-* [English Version](#english-version)
-
-* [简体中文版本](#chinese-version)
-
-
-
-***
-
-# Run and deploy your AI Studio app
+### Run and deploy your AI Studio app
 
 This contains everything you need to run your app locally.
 
-View your app in AI Studio: [https://ai.studio/apps/drive/1KWN5IRlvsLs\_7cZ32akMZX2YYngskgPB](https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX2YYngskgPB)
+View your app in AI Studio: https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX2YYngskgPB
 
-## Run Locally
+#### Run Locally
 
 **Prerequisites:**  Node.js
 
 
-
 1. Install dependencies:
-
-
-
-```
-npm install
-```
-
-
-
-1. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-
+   `npm install`
 2. Run the app:
+   `npm run dev`
 
+#### TTS API Configuration
 
+This application supports text-to-speech functionality through either:
 
-```
-npm run dev
-```
+##### Option 1: OpenAI TTS API
+- You can use the official OpenAI TTS API
+- Requires an OpenAI API key with TTS capabilities
 
-## TTS API Configuration
+##### Option 2: OpenAI-Compatible Edge-TTS API
+- Alternatively, you can use the open-source implementation from: https://github.com/travisvn/openai-edge-tts
+- This provides an OpenAI-compatible interface using Microsoft Edge TTS
+- For detailed setup instructions, please refer to the [openai-edge-tts repository](https://github.com/travisvn/openai-edge-tts)
 
-The application supports two TTS API options:
+#### Nginx Configuration for CORS
 
-### Option 1: OpenAI TTS API
+When deploying the application, you may encounter CORS (Cross-Origin Resource Sharing) issues if your web frontend and API backend are running on different domains or ports.
 
+##### Problem Description
+- Web frontend: Your domain/port (e.g., https://your-domain.com or http://localhost:3000)
+- API backend: localhost:5050 (openai-edge-tts service)
+- These are considered different "origins" by browsers, causing CORS restrictions
 
+##### Solution: Nginx Reverse Proxy
 
-1. Set the `OPENAI_API_KEY` in [.env.local](.env.local) to your OpenAI API key
+Modify the Nginx configuration file (conf/nginx.conf) with the following configuration:
 
-2. The application will automatically use OpenAI's TTS service
-
-### Option 2: OpenAI-Compatible Edge-TTS API
-
-
-
-1. Clone the [openai-edge-tts](https://github.com/travisvn/openai-edge-tts) repository
-
-2. Install dependencies:
-
-
-
-```
-npm install
-```
-
-
-
-1. Start the local API server:
-
-
-
-```
-npm start
-```
-
-(default port: 5050)
-
-
-
-1. No additional API key is required for this option
-
-## Nginx Configuration for CORS
-
-To resolve CORS (Cross-Origin Resource Sharing) issues when the web page domain/port and local API service ([localhost:5050](https://localhost:5050)) are not from the same "origin", you need to configure Nginx.
-
-### Step 1: Install Nginx
-
-
-
-```
-\# Ubuntu/Debian
-
-sudo apt update
-
-sudo apt install nginx
-
-\# macOS
-
-brew install nginx
-```
-
-### Step 2: Create Nginx Configuration File
-
-Create a file named `nginx.conf` in the `conf` directory:
-
-
-
-```
+```nginx
 server {
+    listen 80;  # Custom port (e.g., 8080)
+    server_name localhost;
 
-&#x20;   listen 80;  # Custom port (e.g., 8080)
+    # Handle CORS
+    add_header Access-Control-Allow-Origin *;
+    add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
+    add_header Access-Control-Allow-Headers 'Authorization,Content-Type';
 
-&#x20;   server\_name localhost;
+    # Preflight requests return 204 directly
+    if ($request_method = OPTIONS) {
+        return 204;
+    }
 
-&#x20;   # Handle CORS
-
-&#x20;   add\_header Access-Control-Allow-Origin \*;
-
-&#x20;   add\_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
-
-&#x20;   add\_header Access-Control-Allow-Headers 'Authorization,Content-Type';
-
-&#x20;   # Preflight request directly returns 204
-
-&#x20;   if (\$request\_method = OPTIONS) {
-
-&#x20;       return 204;
-
-&#x20;   }
-
-&#x20;   # Reverse proxy to openai-edge-tts service
-
-&#x20;   location / {
-
-&#x20;       proxy\_pass http://127.0.0.1:5050;  # Point to local API service
-
-&#x20;       proxy\_set\_header Host \$host;
-
-&#x20;       proxy\_set\_header X-Real-IP \$remote\_addr;
-
-&#x20;   }
-
+    # Reverse proxy to openai-edge-tts service
+    location / {
+        proxy_pass http://127.0.0.1:5050;  # Point to local API service
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
 }
 ```
 
-### Step 3: Start Nginx with the Configuration
+##### Deployment Steps with Nginx
 
+1. Install Nginx on your server
+2. Modify the configuration file as shown above
+3. Start Nginx with the new configuration
+4. Update your application to use the Nginx endpoint (web call address changed to http://localhost) instead of directly accessing localhost:5050
 
+This setup will:
+- Allow cross-origin requests from any domain
+- Handle preflight OPTIONS requests
+- Proxy requests to your local API service
+- Preserve original client IP and host information
 
-```
-\# Test the configuration
+#### Troubleshooting
 
-nginx -t -c /path/to/your/conf/nginx.conf
+- If you encounter CORS errors, verify your Nginx configuration is correct
+- Check that the openai-edge-tts service is running on port 5050
+- Ensure your firewall allows traffic on the configured Nginx port
+- For production deployment, consider restricting Access-Control-Allow-Origin to specific domains instead of using '*'
 
-\# Start Nginx
+---
 
-nginx -c /path/to/your/conf/nginx.conf
+## Chinese Version
+## 中文版本
 
-\# Stop Nginx
+### 运行和部署您的AI Studio应用
 
-nginx -s stop
-```
+这包含了在本地运行您的应用所需的一切。
 
-### Step 4: Update API Endpoint in Your Application
+在AI Studio中查看您的应用: https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX2YYngskgPB
 
-Change the TTS API endpoint in your application to use the Nginx proxy:
-
-
-
-* From: `http://localhost:5050`
-
-* To: `http://localhost` (or your custom port)
-
-
-
-***
-
-[⬆️ Switch to 简体中文版本](#chinese-version)
-
-
-
-***
-
-# 运行和部署您的 AI Studio 应用
-
-这里包含了在本地运行您的应用所需的一切。
-
-在 AI Studio 中查看您的应用: [https://ai.studio/apps/drive/1KWN5IRlvsLs\_7cZ32akMZX2YYngskgPB](https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX2YYngskgPB)
-
-## 本地运行
+#### 本地运行
 
 **前提条件:**  Node.js
 
 
-
 1. 安装依赖:
-
-
-
-```
-npm install
-```
-
-
-
-1. 在 [.env.local](.env.local) 中设置 `GEMINI_API_KEY` 为您的 Gemini API 密钥
-
+   `npm install`
 2. 运行应用:
+   `npm run dev`
 
+#### TTS API配置
 
+此应用程序通过以下任一方式支持文本转语音功能:
 
-```
-npm run dev
-```
+##### 选项1: OpenAI TTS API
+- 您可以使用官方的OpenAI TTS API
+- 需要具有TTS功能的OpenAI API密钥
 
-## TTS API 配置
+##### 选项2: 兼容OpenAI的Edge-TTS API
+- 或者，您可以使用来自以下项目的开源实现: https://github.com/travisvn/openai-edge-tts
+- 这提供了一个使用Microsoft Edge TTS的兼容OpenAI的接口
+- 有关详细的设置说明，请参考 [openai-edge-tts仓库](https://github.com/travisvn/openai-edge-tts)
 
-应用支持两种 TTS API 选项:
+#### Nginx CORS配置
 
-### 选项 1: OpenAI TTS API
+在部署应用程序时，如果您的Web前端和API后端运行在不同的域或端口上，可能会遇到CORS（跨域资源共享）问题。
 
+##### 问题描述
+- Web前端: 您的域名/端口 (例如: https://your-domain.com 或 http://localhost:3000)
+- API后端: localhost:5050 (openai-edge-tts服务)
+- 浏览器将这些视为不同的"源"，导致CORS限制
 
+##### 解决方案: Nginx反向代理
 
-1. 在 [.env.local](.env.local) 中设置 `OPENAI_API_KEY` 为您的 OpenAI API 密钥
+修改 Nginx 配置文件（conf/nginx.conf），添加以下配置:
 
-2. 应用将自动使用 OpenAI 的 TTS 服务
-
-### 选项 2: OpenAI 兼容的 Edge-TTS API
-
-
-
-1. 克隆 [openai-edge-tts](https://github.com/travisvn/openai-edge-tts) 仓库
-
-2. 安装依赖:
-
-
-
-```
-npm install
-```
-
-
-
-1. 启动本地 API 服务器:
-
-
-
-```
-npm start
-```
-
-(默认端口: 5050)
-
-
-
-1. 此选项不需要额外的 API 密钥
-
-## Nginx 配置解决 CORS 问题
-
-当网页域名 / 端口和本地 API 服务 ([localhost:5050](https://localhost:5050)) 不属于同一 "源" 时，需要配置 Nginx 来解决 CORS (跨域资源共享) 问题。
-
-### 步骤 1: 安装 Nginx
-
-
-
-```
-\# Ubuntu/Debian
-
-sudo apt update
-
-sudo apt install nginx
-
-\# macOS
-
-brew install nginx
-```
-
-### 步骤 2: 创建 Nginx 配置文件
-
-在 `conf` 目录中创建名为 `nginx.conf` 的文件:
-
-
-
-```
+```nginx
 server {
+    listen 80;  # Custom port (e.g., 8080)
+    server_name localhost;
 
-&#x20;   listen 80;  # 自定义端口（如 8080）
+    # Handle CORS
+    add_header Access-Control-Allow-Origin *;
+    add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
+    add_header Access-Control-Allow-Headers 'Authorization,Content-Type';
 
-&#x20;   server\_name localhost;
+    # Preflight requests return 204 directly
+    if ($request_method = OPTIONS) {
+        return 204;
+    }
 
-&#x20;   # 处理跨域
-
-&#x20;   add\_header Access-Control-Allow-Origin \*;
-
-&#x20;   add\_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
-
-&#x20;   add\_header Access-Control-Allow-Headers 'Authorization,Content-Type';
-
-&#x20;   # 预检请求直接返回 204
-
-&#x20;   if (\$request\_method = OPTIONS) {
-
-&#x20;       return 204;
-
-&#x20;   }
-
-&#x20;   # 反向代理到 openai-edge-tts 服务
-
-&#x20;   location / {
-
-&#x20;       proxy\_pass http://127.0.0.1:5050;  # 指向本地 API 服务
-
-&#x20;       proxy\_set\_header Host \$host;
-
-&#x20;       proxy\_set\_header X-Real-IP \$remote\_addr;
-
-&#x20;   }
-
+    # Reverse proxy to openai-edge-tts service
+    location / {
+        proxy_pass http://127.0.0.1:5050;  # Point to local API service
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
 }
 ```
 
-### 步骤 3: 使用配置启动 Nginx
+##### 使用Nginx的部署步骤
 
+1. 在您的服务器上安装Nginx
+2. 按照上面所示修改配置文件
+3. 使用新配置启动Nginx
+4. 更新您的应用程序以使用 Nginx 端点（网页调用地址改为 http://localhost），而不是直接访问localhost:5050
 
+此设置将:
+- 允许来自任何域的跨域请求
+- 处理预检OPTIONS请求
+- 将请求代理到您的本地API服务
+- 保留原始客户端IP和主机信息
 
-```
-\# 测试配置
+#### 故障排除
 
-nginx -t -c /path/to/your/conf/nginx.conf
-
-\# 启动Nginx
-
-nginx -c /path/to/your/conf/nginx.conf
-
-\# 停止Nginx
-
-nginx -s stop
-```
-
-### 步骤 4: 更新应用中的 API 端点
-
-将应用中的 TTS API 端点更改为使用 Nginx 代理:
-
-
-
-* 从: `http://localhost:5050`
-
-* 到: `http://localhost` (或您的自定义端口)
-
-
-
-***
-
-[⬆️ Switch to English Version](#english-version)
-
-
-
-***
-
-## Language / 语言选择
-
-
-
-* [English Version](#english-version)
-
-* [简体中文版本](#chinese-version)
-
-> （注：文档部分内容可能由 AI 生成）
+- 如果遇到CORS错误，请验证您的Nginx配置是否正确
+- 检查openai-edge-tts服务是否在端口5050上运行
+- 确保您的防火墙允许配置的Nginx端口上的流量
+- 对于生产环境部署，请考虑将Access-Control-Allow-Origin限制为特定域，而不是使用'*'
