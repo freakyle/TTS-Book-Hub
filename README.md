@@ -4,8 +4,10 @@
 
 [English](#english) / [简体中文](#简体中文)
 
+---
 
 <a id="english"></a>
+
 # Run and deploy your AI Studio app
 
 This contains everything you need to run your app locally.
@@ -14,7 +16,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX
 
 ## Run Locally
 
-**Prerequisites:**  Node.js
+**Prerequisites:** Node.js
 
 
 1. Install dependencies:
@@ -23,39 +25,23 @@ View your app in AI Studio: https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX
 3. Run the app:
    `npm run dev`
 
-## TTS API Setup
+---
 
-This app supports two TTS API options:
-- Official OpenAI TTS API: You can use the official OpenAI Text-to-Speech API by configuring your OpenAI API key in the relevant settings.
-- OpenAI-Compatible Edge-TTS API: Alternatively, you can use the open-source implementation from [openai-edge-tts](https://github.com/travisvn/openai-edge-tts). Follow the repository's instructions to deploy the local API service (typically running on `localhost:5050`).
+<a id="简体中文"></a>
 
-## CORS Configuration with Nginx
+# 运行和部署你的AI Studio应用
 
-If you encounter CORS (Cross-Origin Resource Sharing) issues (due to the web app and local API service running on different origins, e.g., web app on a different port/domain vs. local API at `localhost:5050`), you can use Nginx to handle cross-origin requests.
+这里包含了在本地运行应用所需的所有内容。
 
-### Example Nginx Configuration
+在AI Studio中查看应用：https://ai.studio/apps/drive/1KWN5IRlvsLs_7cZ32akMZX2YYngskgPB
 
-Create a `conf/nginx.conf` file with the following content:
+## 本地运行
 
-```nginx
-server {
-    listen 80;  # Custom port (e.g., 8080)
-    server_name localhost;
+**前置条件：** Node.js
 
-    # Handle CORS
-    add_header Access-Control-Allow-Origin *;
-    add_header Access-Control-Allow-Methods 'GET, POST, OPTIONS';
-    add_header Access-Control-Allow-Headers 'Authorization,Content-Type';
 
-    # Return 204 for preflight requests
-    if ($request_method = OPTIONS) {
-        return 204;
-    }
-
-    # Reverse proxy to openai-edge-tts service
-    location / {
-        proxy_pass http://127.0.0.1:5050;  # Point to local API service
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
+1. 安装依赖：
+   `npm install`
+2. 在 [.env.local](.env.local) 中设置 `GEMINI_API_KEY` 为你的Gemini API密钥
+3. 运行应用：
+   `npm run dev`
