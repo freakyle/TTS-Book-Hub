@@ -11,6 +11,7 @@ export interface PlaybackSettings {
   model: string;
   apiKey: string;
   endpoint: string;
+  uiLanguage: 'zh' | 'en';
 }
 
 export interface Chapter {

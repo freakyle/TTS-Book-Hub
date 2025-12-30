@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PlaybackSettings } from '../types';
-import { COMMON_VOICES } from '../constants';
+import { COMMON_VOICES, TRANSLATIONS } from '../constants';
 import { fetchVoices } from '../services/ttsService';
 
 interface SettingsModalProps {
@@ -13,6 +13,8 @@ interface SettingsModalProps {
 const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose }) => {
   const [localSettings, setLocalSettings] = useState<PlaybackSettings>({ ...settings });
   const [availableVoices, setAvailableVoices] = useState<any[]>(COMMON_VOICES);
+  
+  const t = TRANSLATIONS[localSettings.uiLanguage];
 
   useEffect(() => {
     async function loadVoices() {
@@ -27,11 +29,23 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-[#f4ecd8] w-full max-w-md p-8 rounded-lg shadow-2xl border border-[#d1c2a4] paper-texture">
-        <h2 className="text-2xl font-bold mb-6 text-[#4a3f35] border-b-2 border-[#d1c2a4] pb-2">阅读设置</h2>
+        <h2 className="text-2xl font-bold mb-6 text-[#4a3f35] border-b-2 border-[#d1c2a4] pb-2">{t.settings}</h2>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">API 地址</label>
+            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">{t.uiLanguage}</label>
+            <select 
+              value={localSettings.uiLanguage}
+              onChange={(e) => setLocalSettings({...localSettings, uiLanguage: e.target.value as 'zh' | 'en'})}
+              className="w-full px-4 py-2 bg-white/50 border border-[#d1c2a4] rounded focus:ring-2 focus:ring-[#8e7b68] outline-none appearance-none"
+            >
+              <option value="zh">简体中文</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">{t.apiEndpoint}</label>
             <input 
               type="text" 
               value={localSettings.endpoint}
@@ -42,7 +56,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">API Key</label>
+            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">{t.apiKey}</label>
             <input 
               type="password" 
               value={localSettings.apiKey}
@@ -53,7 +67,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">声音选择</label>
+            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">{t.voiceSelection}</label>
             <select 
               value={localSettings.voice}
               onChange={(e) => setLocalSettings({...localSettings, voice: e.target.value})}
@@ -66,7 +80,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">语速: {localSettings.speed}x</label>
+            <label className="block text-sm font-medium text-[#7d6e5d] mb-1">{t.speed}: {localSettings.speed}x</label>
             <input 
               type="range" 
               min="0.5" 
@@ -84,13 +98,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onClose
             onClick={() => onSave(localSettings)}
             className="flex-1 bg-[#8e7b68] text-white py-2 rounded shadow-md hover:bg-[#7d6e5d] transition-colors"
           >
-            保存配置
+            {t.saveConfig}
           </button>
           <button 
             onClick={onClose}
             className="flex-1 bg-[#d1c2a4] text-[#4a3f35] py-2 rounded shadow-md hover:bg-[#c1b294] transition-colors"
           >
-            取消
+            {t.cancel}
           </button>
         </div>
       </div>

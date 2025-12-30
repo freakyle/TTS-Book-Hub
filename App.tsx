@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { PlaybackSettings, Book, Chapter } from './types';
-import { DEFAULT_SETTINGS, Icons } from './constants';
+import { DEFAULT_SETTINGS, Icons, TRANSLATIONS } from './constants';
 import { splitTextIntoChunks } from './utils/textUtils';
 import { generateAudioBlob } from './services/ttsService';
 import SettingsModal from './components/SettingsModal';
@@ -20,6 +20,8 @@ const App: React.FC = () => {
   });
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const t = TRANSLATIONS[settings.uiLanguage];
 
   // 藏书阁数据
   const [library, setLibrary] = useState<Book[]>(() => {
@@ -111,7 +113,7 @@ const App: React.FC = () => {
       let audioUrl = preloadedAudio.current.get(index);
       if (!audioUrl) {
         const textToSpeak = chunks[index];
-        if (!textToSpeak) throw new Error("文本内容为空");
+        if (!textToSpeak) throw new Error(settings.uiLanguage === 'zh' ? "文本内容为空" : "Text is empty");
         
         const blob = await generateAudioBlob(textToSpeak, settings);
         audioUrl = URL.createObjectURL(blob);
@@ -136,7 +138,7 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       if (err.name === 'AbortError') return;
-      setError(err.message || "生成失败");
+      setError(err.message || (settings.uiLanguage === 'zh' ? "生成失败" : "Generation failed"));
       setIsReading(false);
       setIsLoading(false);
     }
@@ -195,7 +197,7 @@ const App: React.FC = () => {
   const deleteBook = (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     e?.preventDefault();
-    if (window.confirm("确定要删除这本书及其所有章节吗？")) {
+    if (window.confirm(t.deleteBookConfirm)) {
       setLibrary(prev => prev.filter(b => b.id !== id));
       if (selectedBookId === id) setViewMode('library');
     }
@@ -223,9 +225,10 @@ const App: React.FC = () => {
     if (booksToExport.length === 0) return;
     
     const data = booksToExport.length === 1 ? booksToExport[0] : booksToExport;
+    const dateStr = new Date().toLocaleDateString();
     const fileName = booksToExport.length === 1 
       ? `${booksToExport[0].name}.moxiang.json` 
-      : `墨香藏书_批量导出_${new Date().toLocaleDateString()}.json`;
+      : `Export_${dateStr}.json`;
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -239,7 +242,7 @@ const App: React.FC = () => {
   };
 
   const batchDelete = () => {
-    if (window.confirm(`确定删除选中的 ${selectedBookIds.size} 本书吗？此操作不可撤销。`)) {
+    if (window.confirm(t.deleteBatchConfirm.replace('{count}', selectedBookIds.size.toString()))) {
       setLibrary(prev => prev.filter(b => !selectedBookIds.has(b.id)));
       setSelectedBookIds(new Set());
       setIsManageMode(false);
@@ -249,8 +252,9 @@ const App: React.FC = () => {
   const startNewChapter = (bookId: string) => {
     const book = library.find(b => b.id === bookId);
     setSelectedBookId(bookId);
+    const defaultSeq = settings.uiLanguage === 'zh' ? `第${(book?.chapters.length || 0) + 1}章` : `Chapter ${(book?.chapters.length || 0) + 1}`;
     setCurrentChapter({
-      sequence: `第${(book?.chapters.length || 0) + 1}章`,
+      sequence: defaultSeq,
       title: '',
       content: ''
     });
@@ -263,8 +267,8 @@ const App: React.FC = () => {
     
     const chapterToSave: Chapter = {
       id: (currentChapter.id || Date.now().toString()) as string,
-      sequence: currentChapter.sequence || '未知章节',
-      title: currentChapter.title || '无标题',
+      sequence: currentChapter.sequence || (settings.uiLanguage === 'zh' ? '未知' : 'Unknown'),
+      title: currentChapter.title || (settings.uiLanguage === 'zh' ? '无标题' : 'Untitled'),
       content: currentChapter.content || '',
       createdAt: Date.now()
     };
@@ -324,7 +328,7 @@ const App: React.FC = () => {
   const deleteChapter = (bookId: string, chapterId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    if (window.confirm("确定删除该章节？")) {
+    if (window.confirm(t.deleteChapterConfirm)) {
       setLibrary(prev => prev.map(b => b.id === bookId ? { ...b, chapters: b.chapters.filter(c => c.id !== chapterId) } : b));
       if (currentChapter?.id === chapterId) {
         stopReading();
@@ -363,12 +367,12 @@ const App: React.FC = () => {
           }
         });
 
-        if (booksToSave.length === 0) throw new Error("无效的书卷文件格式");
+        if (booksToSave.length === 0) throw new Error("Format error");
         
         setLibrary(prev => [...prev, ...booksToSave]);
-        alert(`成功导入 ${booksToSave.length} 本书籍！`);
+        alert(t.importSuccess.replace('{count}', booksToSave.length.toString()));
       } catch (err) {
-        setError("导入失败：文件格式不正确或为空");
+        setError(t.importFailed);
       }
     };
     reader.readAsText(file);
@@ -402,10 +406,10 @@ const App: React.FC = () => {
           <div>
             <h1 
               className="text-3xl font-normal tracking-tight cursor-pointer hover:opacity-80 transition-opacity" 
-              style={{ fontFamily: "'Ma Shan Zheng', cursive" }}
+              style={{ fontFamily: settings.uiLanguage === 'zh' ? "'Ma Shan Zheng', cursive" : "inherit" }}
               onClick={() => { setViewMode('library'); setSelectedBookId(null); setIsManageMode(false); }}
             >
-              墨香听书
+              {t.appName}
             </h1>
             {currentBook && (
                <p className="text-[10px] uppercase tracking-widest opacity-60 font-bold -mt-1 truncate max-w-[150px]">
@@ -420,20 +424,20 @@ const App: React.FC = () => {
               <button 
                 onClick={() => setViewMode('book_detail')} 
                 className="p-2 hover:bg-black/5 rounded-full transition-colors" 
-                title="查看目录"
+                title={t.chaptersList}
               >
                 <Icons.Book />
               </button>
               <button 
                 onClick={() => setViewMode('editor')} 
                 className="p-2 hover:bg-black/5 rounded-full transition-colors" 
-                title="编辑章节"
+                title={t.editChapter}
               >
                 <Icons.Edit />
               </button>
             </>
           )}
-          <button onClick={() => setShowSettings(true)} className="p-2 hover:bg-black/5 rounded-full transition-colors" title="阅读设置"><Icons.Settings /></button>
+          <button onClick={() => setShowSettings(true)} className="p-2 hover:bg-black/5 rounded-full transition-colors" title={t.settings}><Icons.Settings /></button>
         </div>
       </header>
 
@@ -442,7 +446,7 @@ const App: React.FC = () => {
           <div className="absolute inset-0 p-8 overflow-y-auto custom-scrollbar animate-fadeIn">
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
               <h2 className="text-2xl font-bold flex items-center gap-2">
-                <Icons.Book /> {isManageMode ? `批量管理 (已选 ${selectedBookIds.size})` : '我的藏书阁'}
+                <Icons.Book /> {isManageMode ? `${t.manageMode} (${t.selected} ${selectedBookIds.size})` : t.library}
               </h2>
               <div className="flex flex-wrap items-center gap-2">
                 {isManageMode ? (
@@ -451,27 +455,27 @@ const App: React.FC = () => {
                       onClick={selectAllBooks}
                       className="text-xs font-bold text-[#8e7b68] hover:bg-[#8e7b68]/10 px-3 py-2 rounded-lg transition-colors border border-[#8e7b68]/20"
                     >
-                      {selectedBookIds.size === library.length ? '取消全选' : '全部选中'}
+                      {selectedBookIds.size === library.length ? t.deselectAll : t.selectAll}
                     </button>
                     <button 
                       onClick={batchExport}
                       disabled={selectedBookIds.size === 0}
                       className="bg-[#8e7b68] text-[#f4ecd8] px-4 py-2 rounded-lg shadow-md disabled:opacity-40 flex items-center gap-2 transition-all active:scale-95 text-sm font-bold"
                     >
-                      <Icons.Upload /> 批量导出
+                      <Icons.Upload /> {t.batchExport}
                     </button>
                     <button 
                       onClick={batchDelete}
                       disabled={selectedBookIds.size === 0}
                       className="bg-red-600 text-white px-4 py-2 rounded-lg shadow-md disabled:opacity-40 flex items-center gap-2 transition-all active:scale-95 text-sm font-bold"
                     >
-                      <Icons.Trash /> 批量删除
+                      <Icons.Trash /> {t.batchDelete}
                     </button>
                     <button 
                       onClick={() => { setIsManageMode(false); setSelectedBookIds(new Set()); }}
                       className="text-[#8e7b68] text-sm px-4 py-2 border-2 border-[#8e7b68] rounded-lg font-bold hover:bg-[#8e7b68] hover:text-[#f4ecd8] transition-all"
                     >
-                      退出管理
+                      {t.exitManage}
                     </button>
                   </>
                 ) : (
@@ -480,20 +484,20 @@ const App: React.FC = () => {
                       onClick={() => fileInputRef.current?.click()}
                       className="bg-white/40 text-[#8e7b68] border-2 border-[#8e7b68] px-4 py-2 rounded-lg shadow-sm hover:bg-[#8e7b68] hover:text-[#f4ecd8] flex items-center gap-2 transition-all active:scale-95 text-sm font-bold"
                     >
-                      <Icons.Download /> 导入书卷
+                      <Icons.Download /> {t.importBook}
                     </button>
                     <button 
                       onClick={() => setIsManageMode(true)}
                       className="bg-white/40 text-[#8e7b68] border-2 border-[#8e7b68] px-4 py-2 rounded-lg shadow-sm hover:bg-[#8e7b68] hover:text-[#f4ecd8] flex items-center gap-2 transition-all active:scale-95 text-sm font-bold"
                     >
-                      <Icons.Edit /> 管理藏书
+                      <Icons.Edit /> {t.manageBooks}
                     </button>
                     {!isCreatingBook ? (
                       <button 
                         onClick={() => setIsCreatingBook(true)}
                         className="bg-[#8e7b68] text-[#f4ecd8] px-4 py-2 rounded-lg shadow-md hover:bg-[#7d6e5d] flex items-center gap-2 transition-all active:scale-95 text-sm font-bold"
                       >
-                        <Icons.Plus /> 新增书籍
+                        <Icons.Plus /> {t.addBook}
                       </button>
                     ) : (
                       <div className="flex items-center gap-2 animate-fadeIn">
@@ -503,11 +507,11 @@ const App: React.FC = () => {
                           value={newBookName}
                           onChange={(e) => setNewBookName(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleCreateBook()}
-                          placeholder="输入书名..."
+                          placeholder={t.inputBookName}
                           className="px-3 py-2 bg-white/60 border-2 border-[#8e7b68] rounded-lg outline-none text-sm w-40"
                         />
-                        <button onClick={handleCreateBook} className="bg-[#8e7b68] text-[#f4ecd8] px-3 py-2 rounded-lg text-sm font-bold">确定</button>
-                        <button onClick={() => setIsCreatingBook(false)} className="text-[#8e7b68] text-sm px-2">取消</button>
+                        <button onClick={handleCreateBook} className="bg-[#8e7b68] text-[#f4ecd8] px-3 py-2 rounded-lg text-sm font-bold">{t.confirm}</button>
+                        <button onClick={() => setIsCreatingBook(false)} className="text-[#8e7b68] text-sm px-2">{t.cancel}</button>
                       </div>
                     )}
                   </>
@@ -518,13 +522,13 @@ const App: React.FC = () => {
             {library.length === 0 ? (
               <div className="h-64 border-2 border-dashed border-[#d1c2a4] rounded-2xl flex flex-col items-center justify-center opacity-40">
                 <Icons.Book />
-                <p className="mt-2">阁内尚无藏书，请添加或导入第一本小说</p>
+                <p className="mt-2">{t.noBooks}</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 pb-8">
                 {library.map(book => {
                   const lastChapter = book.chapters.find(c => c.id === book.lastReadChapterId);
-                  const progressText = lastChapter ? `${lastChapter.sequence}` : '尚未开始';
+                  const progressText = lastChapter ? `${lastChapter.sequence}` : t.notStarted;
                   
                   return (
                     <div 
@@ -549,7 +553,7 @@ const App: React.FC = () => {
                           <button 
                             type="button"
                             className="p-2 hover:bg-[#8e7b68]/10 rounded-full transition-colors text-[#8e7b68]" 
-                            title="导出此书" 
+                            title={t.exportBook} 
                             onClick={(e) => exportBook(book, e)}
                           >
                             <Icons.Upload />
@@ -557,7 +561,7 @@ const App: React.FC = () => {
                           <button 
                             type="button"
                             className="p-2 hover:bg-red-100 text-red-600 rounded-full transition-colors" 
-                            title="删除" 
+                            title={t.batchDelete} 
                             onClick={(e) => deleteBook(book.id, e)}
                           >
                             <Icons.Trash />
@@ -570,12 +574,12 @@ const App: React.FC = () => {
                         {book.lastReadChapterId && (
                            <div className="mt-2 text-[10px] font-bold text-[#8e7b68] opacity-70 flex items-center gap-1">
                              <span className="w-2 h-2 rounded-full bg-[#8e7b68] animate-pulse"></span>
-                             续读: {progressText}
+                             {t.readProgress.replace('{text}', progressText)}
                            </div>
                         )}
                       </div>
                       <div className="mt-auto">
-                        <p className="text-xs opacity-60 font-medium">共 {book.chapters.length} 章节</p>
+                        <p className="text-xs opacity-60 font-medium">{t.chaptersCount.replace('{count}', book.chapters.length.toString())}</p>
                         <div className="w-full h-1 bg-[#d1c2a4]/30 mt-2 rounded-full overflow-hidden">
                           <div className="h-full bg-[#8e7b68] opacity-40" style={{ width: book.chapters.length > 0 ? `${(book.completedChapterIds?.length || 0) / book.chapters.length * 100}%` : '0%' }}></div>
                         </div>
@@ -599,21 +603,21 @@ const App: React.FC = () => {
                 onClick={(e) => exportBook(currentBook, e)}
                 className="text-xs font-bold border border-[#8e7b68] text-[#8e7b68] px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-[#8e7b68] hover:text-[#f4ecd8] transition-all"
               >
-                <Icons.Upload /> 导出此书卷文件
+                <Icons.Upload /> {t.exportBook}
               </button>
             </div>
 
             <div className="bg-white/30 border border-[#d1c2a4] rounded-2xl p-6 shadow-inner">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#d1c2a4]/50">
-                <span className="text-sm font-bold opacity-60 uppercase tracking-widest">章节目录</span>
+                <span className="text-sm font-bold opacity-60 uppercase tracking-widest">{t.chaptersList}</span>
                 <button onClick={() => startNewChapter(currentBook.id)} className="text-[#8e7b68] text-sm font-bold flex items-center gap-1 hover:bg-[#8e7b68]/10 px-3 py-1 rounded-full transition-colors">
-                  <Icons.Plus /> 添加新章节
+                  <Icons.Plus /> {t.addNewChapter}
                 </button>
               </div>
               
               <div className="space-y-2 pb-8">
                 {currentBook.chapters.length === 0 ? (
-                  <p className="py-12 text-center opacity-40 italic">暂无章节内容</p>
+                  <p className="py-12 text-center opacity-40 italic">{t.noChapters}</p>
                 ) : (
                   currentBook.chapters.slice().sort((a,b) => a.createdAt - b.createdAt).map(ch => {
                     const isLastRead = currentBook.lastReadChapterId === ch.id;
@@ -636,12 +640,12 @@ const App: React.FC = () => {
                           <span className="font-bold">{ch.title}</span>
                           {isCompleted && (
                             <span className={`text-[10px] px-1.5 py-0.5 rounded border ${isLastRead ? 'border-white/40 text-white/60' : 'border-[#8e7b68]/40 text-[#8e7b68]/60 group-hover:text-white/60 group-hover:border-white/40'}`}>
-                              已读完
+                              {t.completed}
                             </span>
                           )}
                           {isLastRead && !isCompleted && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/20 animate-pulse">
-                              正在阅读
+                              {t.reading}
                             </span>
                           )}
                         </div>
@@ -667,22 +671,22 @@ const App: React.FC = () => {
           <div className="absolute inset-0 p-8 flex flex-col animate-fadeIn">
             <div className="flex items-center justify-between mb-4">
                <h2 className="text-xl font-bold flex items-center gap-2">
-                <Icons.Edit /> {currentChapter.id ? '编辑章节' : '新增章节'} - {currentBook?.name}
+                <Icons.Edit /> {currentChapter.id ? t.editChapter : t.addChapter} - {currentBook?.name}
                </h2>
-               <button onClick={handleBack} className="text-sm opacity-60 hover:opacity-100 font-bold underline">返回目录</button>
+               <button onClick={handleBack} className="text-sm opacity-60 hover:opacity-100 font-bold underline">{t.backToCatalog}</button>
             </div>
             
             <div className="flex gap-4 mb-4">
               <input 
                 type="text"
-                placeholder="序数"
+                placeholder={t.seqPlaceholder}
                 value={currentChapter.sequence}
                 onChange={(e) => setCurrentChapter({...currentChapter, sequence: e.target.value})}
                 className="w-32 p-3 bg-white/40 border-2 border-[#d1c2a4] rounded-lg outline-none focus:ring-2 focus:ring-[#8e7b68] transition-all"
               />
               <input 
                 type="text"
-                placeholder="章节标题"
+                placeholder={t.titlePlaceholder}
                 value={currentChapter.title}
                 onChange={(e) => setCurrentChapter({...currentChapter, title: e.target.value})}
                 className="flex-1 p-3 bg-white/40 border-2 border-[#d1c2a4] rounded-lg outline-none focus:ring-2 focus:ring-[#8e7b68] transition-all"
@@ -693,7 +697,7 @@ const App: React.FC = () => {
               value={currentChapter.content}
               onChange={(e) => setCurrentChapter({...currentChapter, content: e.target.value})}
               className="flex-1 p-8 bg-white/40 border-2 border-[#d1c2a4] rounded-xl shadow-inner outline-none text-xl leading-relaxed custom-scrollbar resize-none placeholder:text-[#c1b294] transition-all focus:bg-white/60"
-              placeholder="请输入正文内容..."
+              placeholder={t.contentPlaceholder}
             />
             
             <div className="mt-6 flex flex-col sm:flex-row gap-4">
@@ -701,13 +705,13 @@ const App: React.FC = () => {
                 onClick={handleSaveOnly}
                 className="flex-1 bg-white/40 text-[#8e7b68] border-2 border-[#8e7b68] py-4 px-8 rounded-xl shadow-md hover:bg-[#8e7b68] hover:text-[#f4ecd8] transition-all active:scale-95 font-bold text-lg flex items-center justify-center gap-2"
               >
-                仅保存并返回
+                {t.saveOnly}
               </button>
               <button 
                 onClick={handleSaveAndRead}
                 className="flex-[2] bg-[#8e7b68] text-[#f4ecd8] py-4 px-8 rounded-xl shadow-lg hover:bg-[#7d6e5d] transition-all active:scale-95 font-bold text-xl flex items-center justify-center gap-2"
               >
-                <Icons.Play /> 保存并开始听书
+                <Icons.Play /> {t.saveAndRead}
               </button>
             </div>
           </div>
@@ -784,7 +788,7 @@ const App: React.FC = () => {
             <div className="text-[10px] font-bold opacity-60 font-mono tracking-widest mb-1">{currentChunkIndex + 1} / {chunks.length}</div>
             {viewMode !== 'reader' && (
               <div className="text-xs font-bold truncate max-w-full italic opacity-90">
-                {currentChapter.sequence && `${currentChapter.sequence} · `}{currentChapter.title || '正在阅读...'}
+                {currentChapter.sequence && `${currentChapter.sequence} · `}{currentChapter.title || t.reading}
               </div>
             )}
             <div className="w-full h-1 bg-white/20 rounded-full mt-1 overflow-hidden">
@@ -797,7 +801,7 @@ const App: React.FC = () => {
 
           <div className="hidden sm:flex flex-col items-end shrink-0">
             <span className="bg-black/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{settings.voice.split('-').pop()?.replace('Neural','')}</span>
-            <span className="text-[10px] opacity-60 uppercase font-bold tracking-tighter">{settings.speed}x 语速</span>
+            <span className="text-[10px] opacity-60 uppercase font-bold tracking-tighter">{settings.speed}x {t.speed}</span>
           </div>
         </div>
       )}
