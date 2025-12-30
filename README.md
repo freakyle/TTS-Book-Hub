@@ -1,8 +1,20 @@
-# 项目README文件
+# 项目README文件(最终版)
 
 
 
 ![GHBanner](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
+
+
+
+***
+
+## Language / 语言选择
+
+
+
+* [English Version](#english-version)
+
+* [简体中文版本](#chinese-version)
 
 
 
@@ -150,6 +162,12 @@ Change the TTS API endpoint in your application to use the Nginx proxy:
 
 ***
 
+[Switch to 简体中文版本 ↑](#chinese-version)
+
+
+
+***
+
 # 运行和部署您的 AI Studio 应用
 
 这里包含了在本地运行您的应用所需的一切。
@@ -291,5 +309,19 @@ nginx -s stop
 
 
 ***
+
+[Switch to English Version ↑](#english-version)
+
+
+
+***
+
+## Language / 语言选择
+
+
+
+* [English Version](#english-version)
+
+* [简体中文版本](#chinese-version)
 
 > （注：文档部分内容可能由 AI 生成）
