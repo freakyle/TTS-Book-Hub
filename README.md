@@ -30,13 +30,23 @@ View your app in AI Studio: [https://ai.studio/apps/drive/1KWN5IRlvsLs\_7cZ32akM
 
 1. Install dependencies:
 
-   `npm install`
 
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 
-3. Run the app:
+```
+npm install
+```
 
-   `npm run dev`
+
+
+1. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+
+2. Run the app:
+
+
+
+```
+npm run dev
+```
 
 ## TTS API Configuration
 
@@ -56,11 +66,29 @@ The application supports two TTS API options:
 
 1. Clone the [openai-edge-tts](https://github.com/travisvn/openai-edge-tts) repository
 
-2. Install dependencies: `npm install`
+2. Install dependencies:
 
-3. Start the local API server: `npm start` (default port: 5050)
 
-4. No additional API key is required for this option
+
+```
+npm install
+```
+
+
+
+1. Start the local API server:
+
+
+
+```
+npm start
+```
+
+(default port: 5050)
+
+
+
+1. No additional API key is required for this option
 
 ## Nginx Configuration for CORS
 
@@ -158,7 +186,7 @@ Change the TTS API endpoint in your application to use the Nginx proxy:
 
 ***
 
-[Switch to 简体中文版本 ↑](#chinese-version)
+[⬆️ Switch to 简体中文版本](#chinese-version)
 
 
 
@@ -178,13 +206,23 @@ Change the TTS API endpoint in your application to use the Nginx proxy:
 
 1. 安装依赖:
 
-   `npm install`
 
-2. 在 [.env.local](.env.local) 中设置 `GEMINI_API_KEY` 为您的 Gemini API 密钥
 
-3. 运行应用:
+```
+npm install
+```
 
-   `npm run dev`
+
+
+1. 在 [.env.local](.env.local) 中设置 `GEMINI_API_KEY` 为您的 Gemini API 密钥
+
+2. 运行应用:
+
+
+
+```
+npm run dev
+```
 
 ## TTS API 配置
 
@@ -204,11 +242,29 @@ Change the TTS API endpoint in your application to use the Nginx proxy:
 
 1. 克隆 [openai-edge-tts](https://github.com/travisvn/openai-edge-tts) 仓库
 
-2. 安装依赖: `npm install`
+2. 安装依赖:
 
-3. 启动本地 API 服务器: `npm start` (默认端口: 5050)
 
-4. 此选项不需要额外的 API 密钥
+
+```
+npm install
+```
+
+
+
+1. 启动本地 API 服务器:
+
+
+
+```
+npm start
+```
+
+(默认端口: 5050)
+
+
+
+1. 此选项不需要额外的 API 密钥
 
 ## Nginx 配置解决 CORS 问题
 
@@ -306,7 +362,7 @@ nginx -s stop
 
 ***
 
-[Switch to English Version ↑](#english-version)
+[⬆️ Switch to English Version](#english-version)
 
 
 
